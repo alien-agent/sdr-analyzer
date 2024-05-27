@@ -53,7 +53,9 @@ fun MainScreen() {
     ) {
         NavigationBar(
             onSettingsClick = { /* TODO: Navigate to settings screen */ },
-            connectionState = connectionState
+            connectionState = connectionState,
+            startFrequency = sdrSettings.startFrequency,
+            endFrequency = sdrSettings.endFrequency
         )
         SignalStrengthGraph(
             data = sampleData,
