@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.gestures.rememberScrollableState
 import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,6 +17,7 @@ import androidx.compose.ui.graphics.PaintingStyle
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.sdr_analyzer.data.model.SDRSettings
@@ -28,7 +30,7 @@ fun SignalStrengthGraph(
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollableState { delta ->
-        settings.centerFrequency = settings.centerFrequency - delta / 100
+        settings.centerFrequency = settings.centerFrequency - delta / 25
         delta
     }
 

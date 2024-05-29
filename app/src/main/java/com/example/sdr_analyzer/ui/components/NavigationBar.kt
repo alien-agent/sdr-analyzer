@@ -16,12 +16,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.sdr_analyzer.manager.ConnectionState
 
 @Composable
 fun NavigationBar(
     modifier: Modifier = Modifier,
     onSettingsClick: () -> Unit,
     connectionState: ConnectionState,
+    deviceName: String?,
     startFrequency: Float,
     endFrequency: Float
 ) {
@@ -33,7 +35,7 @@ fun NavigationBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        ConnectionStatus(state = connectionState, modifier = Modifier.padding(start = 4.dp))
+        ConnectionStatus(state = connectionState, deviceName = deviceName, modifier = Modifier.padding(start = 4.dp))
 
         Spacer(modifier = Modifier.weight(1f))
 

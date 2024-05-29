@@ -18,13 +18,10 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-enum class ConnectionState {
-    Connected, Disconnected, Connecting
-}
+import com.example.sdr_analyzer.manager.ConnectionState
 
 @Composable
-fun ConnectionStatus(state: ConnectionState, modifier: Modifier = Modifier) {
+fun ConnectionStatus(state: ConnectionState, deviceName: String?, modifier: Modifier = Modifier) {
     val transition = rememberInfiniteTransition()
 
     val alpha by transition.animateFloat(
@@ -42,8 +39,9 @@ fun ConnectionStatus(state: ConnectionState, modifier: Modifier = Modifier) {
             .background(
                 color = when (state) {
                     ConnectionState.Connected -> Color(0xFF4CAF50)
-                    ConnectionState.Disconnected -> Color(0xFFF44336)
                     ConnectionState.Connecting -> Color(0xFFFFC107)
+                    ConnectionState.Waiting -> Color(0xFF2196F3)
+                    ConnectionState.Failed -> Color(0xFFF44336)
                 },
                 shape = MaterialTheme.shapes.small
             )
@@ -54,23 +52,21 @@ fun ConnectionStatus(state: ConnectionState, modifier: Modifier = Modifier) {
         Icon(
             imageVector = when (state) {
                 ConnectionState.Connected -> Icons.Filled.CheckCircle
-                ConnectionState.Disconnected -> Icons.Filled.Error
+                ConnectionState.Failed -> Icons.Filled.Error
                 ConnectionState.Connecting -> Icons.Filled.Sync
+                ConnectionState.Waiting -> Icons.Filled.Sync
             },
-            contentDescription = when (state) {
-                ConnectionState.Connected -> "Connected"
-                ConnectionState.Disconnected -> "Disconnected"
-                ConnectionState.Connecting -> "Connecting"
-            },
+            contentDescription = "Статус",
             tint = Color.White,
             modifier = if (state == ConnectionState.Connecting) Modifier.alpha(alpha) else Modifier
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = when (state) {
-                ConnectionState.Connected -> "Подключено"
-                ConnectionState.Disconnected -> "Отключено"
+                ConnectionState.Connected -> deviceName ?: "Подключено"
                 ConnectionState.Connecting -> "Подключение"
+                ConnectionState.Waiting -> "Ожидание"
+                ConnectionState.Failed -> "Ошибка"
             },
             color = Color.White,
             fontSize = 16.sp

@@ -1,19 +1,28 @@
 package com.example.sdr_analyzer.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.sdr_analyzer.data.model.SDRSettings
 import com.example.sdr_analyzer.data.model.SignalData
+import com.example.sdr_analyzer.manager.DeviceManager
 import com.example.sdr_analyzer.ui.components.*
 import kotlinx.coroutines.delay
 import kotlin.math.pow
 import kotlin.random.Random
 
 @Composable
-fun MainScreen() {
-    var connectionState by remember { mutableStateOf(ConnectionState.Connecting) }
+fun MainScreen(deviceManager: DeviceManager) {
+    val manager by remember { mutableStateOf(deviceManager) }
 
     var sampleData by remember { mutableStateOf(generateSampleData()) }
     var waterfallData by remember { mutableStateOf(generateWaterfallData(100)) }
@@ -32,7 +41,7 @@ fun MainScreen() {
                 generateSampleData(
                     sdrSettings.startFrequency,
                     sdrSettings.endFrequency,
-                    sdrSettings.frequencyRange / 200
+                    sdrSettings.frequencyRange / 100
                 )  // Обновляем данные 20 раз в секунду
             waterfallData = waterfallData.toMutableList().apply {
                 removeAt(0)
@@ -40,7 +49,7 @@ fun MainScreen() {
                     generateSampleData(
                         sdrSettings.startFrequency,
                         sdrSettings.endFrequency,
-                        sdrSettings.frequencyRange / 200
+                        sdrSettings.frequencyRange / 100
                     )
                 )
             }
@@ -53,26 +62,75 @@ fun MainScreen() {
     ) {
         NavigationBar(
             onSettingsClick = { /* TODO: Navigate to settings screen */ },
-            connectionState = connectionState,
+            connectionState = manager.connectionStatus,
+            deviceName = manager.connectedDevice?.deviceName,
             startFrequency = sdrSettings.startFrequency,
             endFrequency = sdrSettings.endFrequency
         )
-        SignalStrengthGraph(
-            data = sampleData,
-            settings = sdrSettings,
-            modifier = Modifier.weight(1f)
-        )
-        WaterfallPlot(data = waterfallData, modifier = Modifier.weight(1f))
-    }
 
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(2000)
-            connectionState = when (connectionState) {
-                ConnectionState.Connecting -> ConnectionState.Connected
-                ConnectionState.Connected -> ConnectionState.Disconnected
-                ConnectionState.Disconnected -> ConnectionState.Connecting
-            }
+        if (manager.connectedDevice == null) {
+            WaitingForDevice()
+        } else {
+            SignalStrengthGraph(
+                data = sampleData,
+                settings = sdrSettings,
+                modifier = Modifier.weight(1f)
+            )
+            WaterfallPlot(data = waterfallData, modifier = Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+fun WaitingForDevice() {
+    val textColor = Color(0xFF383232)
+    val titleTextStyle = TextStyle(
+        fontSize = 36.sp,
+        color = textColor,
+        fontWeight = FontWeight.Bold,
+        fontFamily = FontFamily.SansSerif
+    )
+    val instructionTextStyle = TextStyle(
+        fontSize = 16.sp,
+        color = textColor,
+        fontWeight = FontWeight.Normal,
+        fontFamily = FontFamily.SansSerif
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Ожидание\nустройства",
+            style = titleTextStyle,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        Column (
+            modifier= Modifier.
+            fillMaxWidth(0.7f)
+        ){
+            Text(
+                text = "1. Подключите устройство с помощью USB-кабеля",
+                style = instructionTextStyle,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "2. Убедитесь что устройство включено и работает",
+                style = instructionTextStyle,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "3. Разрешите доступ к устройству в диалогом окне",
+                style = instructionTextStyle,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
@@ -111,7 +169,7 @@ fun generateSampleData(
         var signalStrength = -75 + Random.nextFloat() * 5
         val distanceFromCenter = Math.abs(frequency - centerFrequency)
         if (distanceFromCenter < bandwidth / 3) {
-            signalStrength += Random.nextFloat() * 100 * Math.exp(-distanceFromCenter.toDouble()/4)
+            signalStrength += Random.nextFloat() * 100 * Math.exp(-distanceFromCenter.toDouble() / 4)
                 .toFloat() / 2
             signalStrength = signalStrength.coerceAtMost(-10F)
         }
