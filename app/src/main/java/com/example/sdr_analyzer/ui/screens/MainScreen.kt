@@ -12,20 +12,52 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.sdr_analyzer.data.model.Frequency
+import com.example.sdr_analyzer.data.model.MHz
 import com.example.sdr_analyzer.data.model.SDRSettings
 import com.example.sdr_analyzer.data.model.SignalData
+import com.example.sdr_analyzer.devices.IDevice
 import com.example.sdr_analyzer.manager.DeviceManager
 import com.example.sdr_analyzer.ui.components.*
 import kotlinx.coroutines.delay
 import kotlin.math.pow
 import kotlin.random.Random
 
+class MockDevice : IDevice {
+    override val deviceName: String = "Arinst SSA-TG"
+    override suspend fun getAmplitudes(): List<SignalData> {
+        return generateSampleData(startFrequency, endFrequency)
+    }
+
+    override val maxFrequency: Frequency = 6200 * MHz
+    override val minFrequency: Frequency = 35 * MHz
+    override val maxFrequencyRange: Frequency = 6200 * MHz
+
+    override var frequencyStep: Frequency = 100000.0f
+    override var centerFrequency: Frequency = 105 * MHz
+        set(value) {
+            field =
+                value.coerceIn(minFrequency + frequencyRange / 2, maxFrequency - frequencyRange / 2)
+        }
+
+    override var frequencyRange: Frequency = 100 * MHz
+        set(value) {
+            field = value.coerceIn(1.0f, maxFrequencyRange)
+            centerFrequency = centerFrequency.coerceIn(
+                minFrequency + frequencyRange / 2,
+                maxFrequency - frequencyRange / 2
+            )
+        }
+
+}
+
 @Composable
 fun MainScreen(deviceManager: DeviceManager) {
     val manager by remember { mutableStateOf(deviceManager) }
+    val mockDevice = MockDevice()
 
     var sampleData by remember { mutableStateOf(generateSampleData()) }
-    var waterfallData by remember { mutableStateOf(generateWaterfallData(100)) }
+//    var waterfallData by remember { mutableStateOf(generateWaterfallData(100)) }
     val sdrSettings = remember {
         SDRSettings(
             centerFrequency = 150.0f,
@@ -37,22 +69,29 @@ fun MainScreen(deviceManager: DeviceManager) {
 
     LaunchedEffect(Unit) {
         while (true) {
-            sampleData =
-                generateSampleData(
-                    sdrSettings.startFrequency,
-                    sdrSettings.endFrequency,
-                    sdrSettings.frequencyRange / 100
-                )  // Обновляем данные 20 раз в секунду
-            waterfallData = waterfallData.toMutableList().apply {
-                removeAt(0)
-                add(
-                    generateSampleData(
-                        sdrSettings.startFrequency,
-                        sdrSettings.endFrequency,
-                        sdrSettings.frequencyRange / 100
-                    )
-                )
-            }
+//            sampleData =
+//                generateSampleData(
+//                    sdrSettings.startFrequency,
+//                    sdrSettings.endFrequency,
+//                    sdrSettings.frequencyRange / 100
+//                )
+
+//            if (deviceManager.connectedDevice != null){
+//                val freshData = deviceManager.connectedDevice!!.getAmplitudes()!!
+//                if (!freshData.isEmpty()){
+//                    sampleData = freshData
+//                }
+//            }
+            sampleData = mockDevice.getAmplitudes()
+//            waterfallData = waterfallData.toMutableList().apply {
+//                removeAt(0)
+//                add(
+//                    generateSampleData(
+//                        sdrSettings.startFrequency,
+//                        sdrSettings.endFrequency,
+//                    )
+//                )
+//            }
             delay(50)  // 50 мс = 20 раз в секунду
         }
     }
@@ -68,16 +107,14 @@ fun MainScreen(deviceManager: DeviceManager) {
             endFrequency = sdrSettings.endFrequency
         )
 
-        if (manager.connectedDevice == null) {
-            WaitingForDevice()
-        } else {
-            SignalStrengthGraph(
-                data = sampleData,
-                settings = sdrSettings,
-                modifier = Modifier.weight(1f)
-            )
-            WaterfallPlot(data = waterfallData, modifier = Modifier.weight(1f))
-        }
+//        if (manager.connectedDevice == null) {
+//            WaitingForDevice()
+//        } else {
+        SignalStrengthGraph(
+            data = sampleData,
+            device = mockDevice,
+            modifier = Modifier.weight(1f)
+        )
     }
 }
 
@@ -110,10 +147,9 @@ fun WaitingForDevice() {
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = 16.dp)
         )
-        Column (
-            modifier= Modifier.
-            fillMaxWidth(0.7f)
-        ){
+        Column(
+            modifier = Modifier.fillMaxWidth(0.7f)
+        ) {
             Text(
                 text = "1. Подключите устройство с помощью USB-кабеля",
                 style = instructionTextStyle,
@@ -147,34 +183,36 @@ fun generateWaterfallData(
             generateSampleData(
                 startFrequency,
                 endFrequency,
-                step
             )
         )
     }
     return data
 }
 
+fun averagePoints(data: List<SignalData>, targetSize: Int): List<SignalData> {
+    if (data.isEmpty() || targetSize <= 0) return emptyList()
+
+    val chunkSize = data.size / targetSize
+    return data.chunked(chunkSize).map { chunk ->
+        val avgFrequency = chunk.map { it.frequency }.average().toFloat()
+        val avgSignalStrength = chunk.map { it.signalStrength }.average().toFloat()
+        SignalData(avgFrequency, avgSignalStrength)
+    }
+}
+
 
 fun generateSampleData(
     startFrequency: Float = 100.0f,
-    endFrequency: Float = 200.0f,
-    step: Float = 0.1f
+    endFrequency: Float = 200.0f
 ): List<SignalData> {
     val data = mutableListOf<SignalData>()
-    val centerFrequency = 105.0f
-    val bandwidth = (endFrequency - startFrequency) / 6 // Ширина полосы около центральной частоты
+    val step = (endFrequency-startFrequency) / 200
 
     var frequency = startFrequency
     while (frequency <= endFrequency) {
-        var signalStrength = -75 + Random.nextFloat() * 5
-        val distanceFromCenter = Math.abs(frequency - centerFrequency)
-        if (distanceFromCenter < bandwidth / 3) {
-            signalStrength += Random.nextFloat() * 100 * Math.exp(-distanceFromCenter.toDouble() / 4)
-                .toFloat() / 2
-            signalStrength = signalStrength.coerceAtMost(-10F)
-        }
+        val signalStrength = -110 + Random.nextFloat() * 5
 
-        data.add(SignalData(frequency = frequency, signalStrength = signalStrength.toFloat()))
+        data.add(SignalData(frequency = frequency, signalStrength = signalStrength))
         frequency += step
     }
     return data

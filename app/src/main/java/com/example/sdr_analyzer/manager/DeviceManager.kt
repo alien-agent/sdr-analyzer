@@ -1,9 +1,11 @@
 package com.example.sdr_analyzer.manager
 
+import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbDeviceConnection
 import android.hardware.usb.UsbManager
@@ -25,6 +27,7 @@ enum class ConnectionState {
     Connected,
 }
 
+@SuppressLint("UnspecifiedRegisterReceiverFlag")
 class DeviceManager(private val context: Context) {
     private var usbManager: UsbManager = context.getSystemService(Context.USB_SERVICE) as UsbManager
     var connectionStatus by mutableStateOf(ConnectionState.Waiting)
@@ -35,10 +38,9 @@ class DeviceManager(private val context: Context) {
         get() = connectedDevice != null
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-    private val usbReceiver = object : BroadcastReceiver() {
+    private val permissionReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            val action = intent.action
-            if (ACTION_USB_PERMISSION == action) {
+            if (ACTION_USB_PERMISSION == intent.action) {
                 synchronized(this) {
                     val device = intent.getParcelableExtra<UsbDevice>(UsbManager.EXTRA_DEVICE)
                     if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
@@ -54,8 +56,19 @@ class DeviceManager(private val context: Context) {
             }
         }
     }
+    private val detachedReceiver = object : BroadcastReceiver(){
+        override fun onReceive(context: Context?, intent: Intent) {
+            if (UsbManager.ACTION_USB_DEVICE_DETACHED == intent.action) {
+                Log.d(LOGGER_TAG, "Device detached")
+                connectedDevice = null
+                connectionStatus = ConnectionState.Waiting
+            }
+        }
+    }
 
     init {
+        context.registerReceiver(detachedReceiver, IntentFilter(UsbManager.ACTION_USB_DEVICE_DETACHED))
+        context.registerReceiver(permissionReceiver, IntentFilter(ACTION_USB_PERMISSION))
         scope.launch {
             while (true) {
                 if (!isConnected) {
@@ -89,8 +102,8 @@ class DeviceManager(private val context: Context) {
             return
         }
 
-        if (device.vendorId == 1155 && device.deviceId == 1002) {
-            connectedDevice = ArinstSSA(connection)
+        if (device.vendorId == 1155) {
+            connectedDevice = ArinstSSA(device, connection)
         } else {
             Log.d(LOGGER_TAG, "Unsupported device (${device.vendorId},${device.deviceId})")
             connectionStatus = ConnectionState.Failed
