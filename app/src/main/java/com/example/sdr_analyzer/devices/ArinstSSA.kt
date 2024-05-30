@@ -152,7 +152,7 @@ class ArinstSSA(private val device: UsbDevice, private val connection: UsbDevice
             startFrequency.toLong(),
             frequencyStep.toLong(),
             adjustedAttenuation
-        ).filter { it.signalStrength < 0 })
+        ))
     }
 }
 
@@ -165,10 +165,16 @@ fun removeMostFrequentAmplitude(data: List<SignalData>): List<SignalData> {
 
     // Находим наиболее часто встречающуюся амплитуду
     val mostFrequentAmplitude = amplitudeFrequency.maxByOrNull { it.value }?.key
+    val minAmplitude = data.minBy { it.signalStrength }.signalStrength
 
     // Возвращаем новый список, исключая значения с наиболее часто встречающейся амплитудой
     return if (mostFrequentAmplitude != null) {
-        data.filter { it.signalStrength != mostFrequentAmplitude }
+        data.map {
+            if (it.signalStrength == mostFrequentAmplitude) {
+                 SignalData(frequency = it.frequency, signalStrength = minAmplitude)
+            }
+            it
+        }
     } else {
         data
     }

@@ -1,15 +1,25 @@
 package com.example.sdr_analyzer.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.sdr_analyzer.data.model.Frequency
@@ -54,67 +64,81 @@ class MockDevice : IDevice {
 @Composable
 fun MainScreen(deviceManager: DeviceManager) {
     val manager by remember { mutableStateOf(deviceManager) }
-    val mockDevice = MockDevice()
+    val mockDevice by remember { mutableStateOf(MockDevice()) }
+
+    var showSettings by remember { mutableStateOf(false) }
+    var settingsMenu by remember { mutableStateOf(true) }
+    var selectedMenu by remember { mutableStateOf("") }
 
     var sampleData by remember { mutableStateOf(generateSampleData()) }
-//    var waterfallData by remember { mutableStateOf(generateWaterfallData(100)) }
-    val sdrSettings = remember {
-        SDRSettings(
-            centerFrequency = 150.0f,
-            frequencyRange = 100.0f,
-            minFrequency = 1.0f,
-            maxFrequency = 7000.0f
-        )
-    }
+    var waterfallData by remember { mutableStateOf(MutableList<List<SignalData>>(0, init = {emptyList()})) }
 
     LaunchedEffect(Unit) {
         while (true) {
-//            sampleData =
-//                generateSampleData(
-//                    sdrSettings.startFrequency,
-//                    sdrSettings.endFrequency,
-//                    sdrSettings.frequencyRange / 100
-//                )
-
-//            if (deviceManager.connectedDevice != null){
-//                val freshData = deviceManager.connectedDevice!!.getAmplitudes()!!
-//                if (!freshData.isEmpty()){
-//                    sampleData = freshData
-//                }
-//            }
-            sampleData = mockDevice.getAmplitudes()
-//            waterfallData = waterfallData.toMutableList().apply {
-//                removeAt(0)
-//                add(
-//                    generateSampleData(
-//                        sdrSettings.startFrequency,
-//                        sdrSettings.endFrequency,
-//                    )
-//                )
-//            }
-            delay(50)  // 50 мс = 20 раз в секунду
+            if(manager.connectedDevice != null){
+                val freshData = manager.connectedDevice!!.getAmplitudes()
+                if (freshData.isNullOrEmpty()){
+                    continue
+                }
+                sampleData = freshData
+                if(waterfallData.size < 200){
+                    waterfallData.add(sampleData)
+                } else {
+                    waterfallData = waterfallData.apply {
+                        removeAt(0)
+                        add(sampleData)
+                    }
+                }
+            }
         }
     }
 
     Column(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .animateContentSize()
     ) {
         NavigationBar(
-            onSettingsClick = { /* TODO: Navigate to settings screen */ },
+            onSettingsClick = { showSettings = !showSettings },
             connectionState = manager.connectionStatus,
             deviceName = manager.connectedDevice?.deviceName,
-            startFrequency = sdrSettings.startFrequency,
-            endFrequency = sdrSettings.endFrequency
+            startFrequency = 100.0f,
+            endFrequency = 100.0f
         )
 
-//        if (manager.connectedDevice == null) {
-//            WaitingForDevice()
-//        } else {
-        SignalStrengthGraph(
-            data = sampleData,
-            device = mockDevice,
-            modifier = Modifier.weight(1f)
-        )
+        if (manager.connectedDevice == null) {
+            WaitingForDevice()
+        } else {
+            AnimatedVisibility(
+                visible = showSettings,
+                enter = expandVertically(
+                    spring(
+                        stiffness = Spring.StiffnessLow,
+                        visibilityThreshold = IntSize.VisibilityThreshold
+                    ),
+                ),
+                exit = shrinkVertically(),
+            ) {
+                if (settingsMenu) {
+                    SettingsMenu(onMenuSelect = { menu ->
+                        selectedMenu = menu
+                        settingsMenu = false
+                    })
+                } else {
+                    when (selectedMenu) {
+                        "Frequency" -> FrequencySettings(
+                            device = manager.connectedDevice!!,
+                            exit = { settingsMenu = true })
+                    }
+                }
+            }
+            SignalStrengthGraph(
+                data = sampleData,
+                device = manager.connectedDevice!!,
+                modifier = Modifier.weight(1f)
+            )
+            WaterfallPlot(data = waterfallData, modifier = Modifier.weight(1f))
+        }
     }
 }
 
@@ -189,24 +213,13 @@ fun generateWaterfallData(
     return data
 }
 
-fun averagePoints(data: List<SignalData>, targetSize: Int): List<SignalData> {
-    if (data.isEmpty() || targetSize <= 0) return emptyList()
-
-    val chunkSize = data.size / targetSize
-    return data.chunked(chunkSize).map { chunk ->
-        val avgFrequency = chunk.map { it.frequency }.average().toFloat()
-        val avgSignalStrength = chunk.map { it.signalStrength }.average().toFloat()
-        SignalData(avgFrequency, avgSignalStrength)
-    }
-}
-
 
 fun generateSampleData(
     startFrequency: Float = 100.0f,
     endFrequency: Float = 200.0f
 ): List<SignalData> {
     val data = mutableListOf<SignalData>()
-    val step = (endFrequency-startFrequency) / 200
+    val step = (endFrequency - startFrequency) / 200
 
     var frequency = startFrequency
     while (frequency <= endFrequency) {

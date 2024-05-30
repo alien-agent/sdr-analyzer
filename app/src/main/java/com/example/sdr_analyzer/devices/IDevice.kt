@@ -10,10 +10,13 @@ interface IDevice {
     var frequencyRange: Frequency
     var frequencyStep: Frequency
     val maxFrequencyRange: Frequency
-    val startFrequency: Frequency
+    var startFrequency: Frequency
         get() = centerFrequency - frequencyRange / 2
-    val endFrequency: Frequency
+        set(value) {centerFrequency = value + frequencyRange/2}
+    var endFrequency: Frequency
         get() = centerFrequency + frequencyRange / 2
+        set(value) {centerFrequency = value - frequencyRange/2}
+
     val deviceName: String
 
     suspend fun getAmplitudes() : List<SignalData>?
