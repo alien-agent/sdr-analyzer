@@ -9,10 +9,11 @@ import com.example.sdr_analyzer.data.model.MHz
 import com.example.sdr_analyzer.data.model.SignalData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlin.random.Random
 
 class ArinstSSA(private val device: UsbDevice, private val connection: UsbDeviceConnection) :
     IDevice {
-    override val deviceName: String = "Arinst SSA-TG"
+    override val deviceName: String = "Arinst SSA"
     override val maxFrequency: Frequency = 6200 * MHz
     override val minFrequency: Frequency = 35 * MHz
     override val maxFrequencyRange: Frequency = 6200 * MHz
@@ -26,7 +27,7 @@ class ArinstSSA(private val device: UsbDevice, private val connection: UsbDevice
 
     override var frequencyRange: Frequency = 100 * MHz
         set(value) {
-            field = value.coerceIn(1.0f, maxFrequencyRange)
+            field = value.coerceIn(1* MHz, maxFrequencyRange)
             centerFrequency = centerFrequency.coerceIn(
                 minFrequency + frequencyRange / 2,
                 maxFrequency - frequencyRange / 2
@@ -160,22 +161,25 @@ class ArinstSSA(private val device: UsbDevice, private val connection: UsbDevice
 fun removeMostFrequentAmplitude(data: List<SignalData>): List<SignalData> {
     if (data.isEmpty()) return data
 
+    return data.filter { it.signalStrength < 0 }
     // Группируем по амплитуде и считаем частоту каждой амплитуды
-    val amplitudeFrequency = data.groupingBy { it.signalStrength }.eachCount()
-
-    // Находим наиболее часто встречающуюся амплитуду
-    val mostFrequentAmplitude = amplitudeFrequency.maxByOrNull { it.value }?.key
-    val minAmplitude = data.minBy { it.signalStrength }.signalStrength
-
-    // Возвращаем новый список, исключая значения с наиболее часто встречающейся амплитудой
-    return if (mostFrequentAmplitude != null) {
-        data.map {
-            if (it.signalStrength == mostFrequentAmplitude) {
-                 SignalData(frequency = it.frequency, signalStrength = minAmplitude)
-            }
-            it
-        }
-    } else {
-        data
-    }
+//    val amplitudeFrequency = data.groupingBy { it.signalStrength }.eachCount()
+//
+//    // Находим наиболее часто встречающуюся амплитуду
+//    val mostFrequentAmplitude = amplitudeFrequency.maxByOrNull { it.value }?.key
+//    val minAmplitude = data.minBy { it.signalStrength }.signalStrength
+//    val maxAmplitude = data.maxBy { it.signalStrength }.signalStrength
+//
+//    // Возвращаем новый список, исключая значения с наиболее часто встречающейся амплитудой
+//    return if (mostFrequentAmplitude != null) {
+//        data.map {
+//            var result: SignalData = it
+//            if (it.signalStrength == mostFrequentAmplitude) {
+//                 result = SignalData(frequency = it.frequency, signalStrength = minAmplitude+Random.nextFloat()*(maxAmplitude-minAmplitude))
+//            }
+//            result
+//        }.slice(0 until data.size step 4)
+//    } else {
+//        data
+//    }
 }

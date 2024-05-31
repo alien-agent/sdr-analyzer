@@ -26,15 +26,18 @@ import com.example.sdr_analyzer.data.model.Frequency
 import com.example.sdr_analyzer.data.model.MHz
 import com.example.sdr_analyzer.data.model.SDRSettings
 import com.example.sdr_analyzer.data.model.SignalData
+import com.example.sdr_analyzer.data.model.toMHz
 import com.example.sdr_analyzer.devices.IDevice
 import com.example.sdr_analyzer.manager.DeviceManager
 import com.example.sdr_analyzer.ui.components.*
 import kotlinx.coroutines.delay
+import kotlin.math.absoluteValue
+import kotlin.math.exp
 import kotlin.math.pow
 import kotlin.random.Random
 
 class MockDevice : IDevice {
-    override val deviceName: String = "Arinst SSA-TG"
+    override val deviceName: String = "Arinst SSA"
     override suspend fun getAmplitudes(): List<SignalData> {
         return generateSampleData(startFrequency, endFrequency)
     }
@@ -89,7 +92,10 @@ fun MainScreen(deviceManager: DeviceManager) {
                         add(sampleData)
                     }
                 }
+            } else {
+                waterfallData.toMutableList().add(mockDevice.getAmplitudes())
             }
+            delay(50)  // 50 мс = 20 раз в секунду
         }
     }
 
@@ -219,11 +225,24 @@ fun generateSampleData(
     endFrequency: Float = 200.0f
 ): List<SignalData> {
     val data = mutableListOf<SignalData>()
-    val step = (endFrequency - startFrequency) / 200
+    val step = (endFrequency - startFrequency) / 300
+    val centerFrequency = when {
+        startFrequency > 1000 * MHz -> 1100 * MHz
+        startFrequency > 800 * MHz -> 900 * MHz
+        startFrequency > 600 * MHz -> 700 * MHz
+        startFrequency > 400 * MHz -> 500 * MHz
+        startFrequency > 200 * MHz -> 300 * MHz
+        startFrequency > 100 * MHz -> 166 * MHz
+        else -> 100 * MHz
+    }
 
     var frequency = startFrequency
     while (frequency <= endFrequency) {
-        val signalStrength = -110 + Random.nextFloat() * 5
+        var signalStrength = -110 + Random.nextFloat() * 5
+        val diff = (frequency-centerFrequency).absoluteValue
+        if (diff < endFrequency-startFrequency/10){
+            signalStrength += Random.nextFloat()*100 * Math.exp(-diff.toMHz().toDouble() / 4).toFloat()/2
+        }
 
         data.add(SignalData(frequency = frequency, signalStrength = signalStrength))
         frequency += step

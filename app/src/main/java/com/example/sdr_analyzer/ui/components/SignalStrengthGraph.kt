@@ -80,10 +80,10 @@ fun SignalStrengthGraph(
     ) {
 
         val signalPaint = Paint().apply {
-            color = Color.Green
+            color = Color.Yellow
             style = PaintingStyle.Stroke
-            strokeWidth = 2.dp.toPx()
-            isAntiAlias = false
+            strokeWidth = 1.dp.toPx()
+            isAntiAlias = true
         }
 
         val maxFrequency = data.maxOfOrNull { it.frequency } ?: 1.0F

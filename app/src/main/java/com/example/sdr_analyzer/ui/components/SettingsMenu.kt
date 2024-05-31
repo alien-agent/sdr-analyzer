@@ -15,7 +15,7 @@ fun SettingsMenu(onMenuSelect: (String) -> Unit) {
             .padding(16.dp)
     ) {
         Button(onClick = { onMenuSelect("Frequency") }, modifier = Modifier.fillMaxWidth()) {
-            Text("Frequency Settings", )
+            Text("Частота", )
         }
         Spacer(modifier = Modifier.height(8.dp))
     }
