@@ -33,7 +33,7 @@ import com.example.sdr_analyzer.application.AnalyzerApp
 import kotlin.math.roundToInt
 
 enum class MenusList(val title: String) {
-    Frequency("Частота"),
+//    Frequency("Частота"),
     Other("Прочее")
 }
 
@@ -65,7 +65,7 @@ fun SettingsMenu(isShown: Boolean, app: AnalyzerApp) {
                         onClick = { selectedMenu = it },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = when (it) {
-                            MenusList.Frequency -> app.connectedDevice != null
+//                            MenusList.Frequency -> app.connectedDevice != null
                             else -> true
                         },
                     ) {
@@ -96,9 +96,9 @@ fun SettingsMenu(isShown: Boolean, app: AnalyzerApp) {
                     )
                 }
                 when (selectedMenu) {
-                    MenusList.Frequency -> FrequencySettings(
-                        device = app.connectedDevice!!
-                    )
+//                    MenusList.Frequency -> FrequencySettings(
+//                        device = app.connectedDevice!!
+//                    )
 
                     MenusList.Other -> OtherMenu(
                         app = app
