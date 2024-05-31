@@ -4,6 +4,7 @@ import android.hardware.usb.UsbConstants
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbDeviceConnection
 import android.hardware.usb.UsbEndpoint
+import androidx.core.util.rangeTo
 import com.example.sdr_analyzer.data.model.Frequency
 import com.example.sdr_analyzer.data.model.MHz
 import com.example.sdr_analyzer.data.model.SignalData
@@ -27,7 +28,7 @@ class ArinstSSA(private val device: UsbDevice, private val connection: UsbDevice
 
     override var frequencyRange: Frequency = 100 * MHz
         set(value) {
-            field = value.coerceIn(1* MHz, maxFrequencyRange)
+            field = value.coerceIn(1 * MHz, maxFrequencyRange)
             centerFrequency = centerFrequency.coerceIn(
                 minFrequency + frequencyRange / 2,
                 maxFrequency - frequencyRange / 2
@@ -69,7 +70,7 @@ class ArinstSSA(private val device: UsbDevice, private val connection: UsbDevice
         this.outEndpoint = outEndpoint
     }
 
-    private suspend fun sendCommand(command: String, vararg args: Any): String =
+    private suspend fun sendCommand(command: String, vararg args: Any): ByteArray =
         withContext(Dispatchers.IO) {
             val msg = buildString {
                 append(command)
@@ -81,14 +82,14 @@ class ArinstSSA(private val device: UsbDevice, private val connection: UsbDevice
             readResponse(command)
         }
 
-    private fun readResponse(command: String): String {
+    private fun readResponse(command: String): ByteArray {
         val buffer = ByteArray(1024)
-        var result = ""
+        var result = ByteArray(0)
         while (true) {
             val bytesRead = connection.bulkTransfer(inEndpoint, buffer, buffer.size, 1000)
             if (bytesRead <= 0) break
-            result += buffer.copyOf(bytesRead).toString(Charsets.US_ASCII)
-            if (result.endsWith(COMMAND_TERMINATE)) break
+            result += buffer.copyOf(bytesRead)
+            if (result.takeLast(2) == listOf(13, 10)) break
         }
         return result
     }
@@ -97,7 +98,6 @@ class ArinstSSA(private val device: UsbDevice, private val connection: UsbDevice
         response: ByteArray,
         startFrequency: Long,
         stepFrequency: Long,
-        attenuation: Int
     ): List<SignalData> {
         val amplitudes = mutableListOf<SignalData>()
         for (i in response.indices step 2) {
@@ -139,47 +139,44 @@ class ArinstSSA(private val device: UsbDevice, private val connection: UsbDevice
                 10700000,
                 adjustedAttenuation
             )
-        val processedResponse =
-            response.split(COMMAND_TERMINATE).filterNot { it == "" }.map { it.split(' ') }
 
-        if (processedResponse.size != 3 || processedResponse.last()
-                .first() != "complete" || processedResponse.first().first() != command
-        ) {
-            return@withContext emptyList()
+        val encodedData = parseScn20Response(response) ?: return@withContext null
+
+        return@withContext decodeData(encodedData, startFrequency.toLong(), frequencyStep.toLong())
+    }
+
+    private fun parseScn20Response(response: ByteArray): ByteArray? {
+        // “\r\nscn20 Start Index\r\n<encoded_data><elapsed_time>\r\ncomplete\r\n”
+
+        val rnIndices = response.findAllConsecutive(13, 10) // \r\n
+        if (rnIndices.size != 4) {
+            return null
         }
 
-        return@withContext removeMostFrequentAmplitude(decodeData(
-            processedResponse[1][0].toByteArray(Charsets.US_ASCII),
-            startFrequency.toLong(),
-            frequencyStep.toLong(),
-            adjustedAttenuation
-        ))
+        val header = response.slice(rnIndices[0] + 2 until rnIndices[1]).toByteArray()
+        val content = response.slice(rnIndices[1] + 2 until rnIndices[2] - 3).toByteArray()
+        val complete = response.slice(rnIndices[2] + 2 until rnIndices[3]).toByteArray()
+
+        if (!header.toString(Charsets.US_ASCII).startsWith("scn20")) {
+            return null
+        }
+        if (complete.toString(Charsets.US_ASCII) != "complete") {
+            return null
+        }
+
+        return content
     }
 }
 
+fun ByteArray.findAllConsecutive(v1: Byte, v2: Byte): List<Int> {
+    val result = mutableListOf<Int>()
 
-fun removeMostFrequentAmplitude(data: List<SignalData>): List<SignalData> {
-    if (data.isEmpty()) return data
+    this.forEachIndexed { i, el ->
+        if (i + 1 < this.size && this[i] == v1 && this[i + 1] == v2) {
+            result.add(i)
+        }
+    }
 
-    return data.filter { it.signalStrength < 0 }
-    // Группируем по амплитуде и считаем частоту каждой амплитуды
-//    val amplitudeFrequency = data.groupingBy { it.signalStrength }.eachCount()
-//
-//    // Находим наиболее часто встречающуюся амплитуду
-//    val mostFrequentAmplitude = amplitudeFrequency.maxByOrNull { it.value }?.key
-//    val minAmplitude = data.minBy { it.signalStrength }.signalStrength
-//    val maxAmplitude = data.maxBy { it.signalStrength }.signalStrength
-//
-//    // Возвращаем новый список, исключая значения с наиболее часто встречающейся амплитудой
-//    return if (mostFrequentAmplitude != null) {
-//        data.map {
-//            var result: SignalData = it
-//            if (it.signalStrength == mostFrequentAmplitude) {
-//                 result = SignalData(frequency = it.frequency, signalStrength = minAmplitude+Random.nextFloat()*(maxAmplitude-minAmplitude))
-//            }
-//            result
-//        }.slice(0 until data.size step 4)
-//    } else {
-//        data
-//    }
+
+    return result
 }
