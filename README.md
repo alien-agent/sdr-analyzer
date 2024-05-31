@@ -1,4 +1,8 @@
-## SDR Analyzer
+<p align="center">
+  <img src='assets/cool-logo.png'>
+</p>
+
+---
 
 **SDR Analyzer** - мобильное приложение для анализа данных с программно-определяемых радиосистем.
 
