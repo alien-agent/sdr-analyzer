@@ -15,6 +15,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,7 +30,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.sdr_analyzer.application.AnalyzerApp
-import com.example.sdr_analyzer.application.DeviceManager
+import kotlin.math.roundToInt
 
 enum class MenusList(val title: String) {
     Frequency("Частота"),
@@ -39,6 +40,9 @@ enum class MenusList(val title: String) {
 @Composable
 fun SettingsMenu(isShown: Boolean, app: AnalyzerApp) {
     var selectedMenu: MenusList? by remember { mutableStateOf(null) }
+    val app by remember {
+        mutableStateOf(app)
+    }
 
     AnimatedVisibility(
         visible = isShown,
@@ -74,7 +78,7 @@ fun SettingsMenu(isShown: Boolean, app: AnalyzerApp) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(horizontal = 20.dp, vertical=8.dp)
             ) {
                 Box(modifier = Modifier.fillMaxWidth()) {
                     IconButton(onClick = { selectedMenu = null }) {
@@ -93,8 +97,7 @@ fun SettingsMenu(isShown: Boolean, app: AnalyzerApp) {
                 }
                 when (selectedMenu) {
                     MenusList.Frequency -> FrequencySettings(
-                        device = app.connectedDevice!!,
-                        exit = { selectedMenu = null }
+                        device = app.connectedDevice!!
                     )
 
                     MenusList.Other -> OtherMenu(
@@ -110,6 +113,14 @@ fun SettingsMenu(isShown: Boolean, app: AnalyzerApp) {
 
 @Composable
 fun OtherMenu(app: AnalyzerApp) {
+    SwitchWithLabel(
+        label = "Оверлей частот",
+        state = app.isFreqOverlayShown,
+        onStateChange = {
+            app.isFreqOverlayShown = it
+        }
+    )
+    Spacer(Modifier.height(4.dp))
     SwitchWithLabel(
         label = "Демонстрационный режим",
         state = app.isDemoMode,
@@ -132,8 +143,7 @@ private fun SwitchWithLabel(label: String, state: Boolean, onStateChange: (Boole
                 onClick = {
                     onStateChange(!state)
                 }
-            )
-            .padding(8.dp),
+            ),
         verticalAlignment = Alignment.CenterVertically
 
     ) {
@@ -144,6 +154,6 @@ private fun SwitchWithLabel(label: String, state: Boolean, onStateChange: (Boole
             }
         )
         Spacer(modifier = Modifier.padding(start = 8.dp))
-        Text(text = label, fontSize = 14.sp)
+        Text(text = label, fontSize = 16.sp)
     }
 }

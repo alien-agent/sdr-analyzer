@@ -18,6 +18,7 @@ import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.example.sdr_analyzer.application.AnalyzerApp
 import com.example.sdr_analyzer.data.model.Frequency
 import com.example.sdr_analyzer.data.model.MHz
 import com.example.sdr_analyzer.data.model.toMHz
@@ -25,7 +26,7 @@ import com.example.sdr_analyzer.devices.IDevice
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FrequencySettings(device: IDevice, exit: () -> Unit) {
+fun FrequencySettings(device: IDevice) {
     val focusManager = LocalFocusManager.current
 
     Column(

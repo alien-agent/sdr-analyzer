@@ -21,7 +21,6 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun MainScreen(app: AnalyzerApp) {
-
     var showSettings by remember { mutableStateOf(false) }
 
     var sampleData by remember { mutableStateOf(emptyList<SignalData>()) }
@@ -75,8 +74,9 @@ fun MainScreen(app: AnalyzerApp) {
         } else {
 
             SignalStrengthGraph(
-                data = sampleData,
+                app = app,
                 device = app.connectedDevice!!,
+                data = sampleData,
                 modifier = Modifier.weight(1f)
             )
             WaterfallPlot(data = waterfallData, modifier = Modifier.weight(1f))

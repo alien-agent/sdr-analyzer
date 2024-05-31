@@ -1,17 +1,29 @@
 package com.example.sdr_analyzer.ui.components
 
-import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.gestures.rememberScrollableState
-import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.scrollable
-import androidx.compose.foundation.gestures.transformable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.NativeCanvas
@@ -21,14 +33,13 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.sdr_analyzer.application.AnalyzerApp
 import com.example.sdr_analyzer.data.model.Frequency
 import com.example.sdr_analyzer.data.model.MHz
 import com.example.sdr_analyzer.data.model.SignalData
+import com.example.sdr_analyzer.data.model.toText
 import com.example.sdr_analyzer.data.model.toTextWithoutUnit
 import com.example.sdr_analyzer.devices.IDevice
 import kotlin.math.absoluteValue
@@ -58,6 +69,7 @@ class DrawingSettings(
 
 @Composable
 fun SignalStrengthGraph(
+    app: AnalyzerApp,
     data: List<SignalData>,
     device: IDevice,
     modifier: Modifier = Modifier,
@@ -69,95 +81,136 @@ fun SignalStrengthGraph(
         delta
     }
 
-    val minAmplitude = minVirtualAmplitude
-    val maxAmplitude = maxVirtualAmplitude
+    val minAmplitude = app.screenMinAmplitude
+    val maxAmplitude = app.screenMaxAmplitude
 
-    Canvas(
-        modifier = modifier
-            .fillMaxSize()
-            .scrollable(scrollState, orientation = Orientation.Horizontal)
-            .background(Color.Black)
-    ) {
+    Box(modifier = modifier.fillMaxSize()) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .scrollable(scrollState, orientation = Orientation.Horizontal)
+                .background(Color.Black)
+        ) {
 
-        val signalPaint = Paint().apply {
-            color = Color.Yellow
-            style = PaintingStyle.Stroke
-            strokeWidth = 1.dp.toPx()
-            isAntiAlias = true
-        }
+            val signalPaint = Paint().apply {
+                color = Color.Yellow
+                style = PaintingStyle.Stroke
+                strokeWidth = 1.dp.toPx()
+                isAntiAlias = true
+            }
 
-        val maxFrequency = data.maxOfOrNull { it.frequency } ?: 1.0F
-        val minFrequency = data.minOfOrNull { it.frequency } ?: 0.0F
+            val maxFrequency = data.maxOfOrNull { it.frequency } ?: 1.0F
+            val minFrequency = data.minOfOrNull { it.frequency } ?: 0.0F
 
-        val frequencyRange = maxFrequency - minFrequency
-        val amplitudeRange = maxAmplitude - minAmplitude
+            val frequencyRange = maxFrequency - minFrequency
+            val amplitudeRange = maxAmplitude - minAmplitude
 
-        val width = size.width
-        val height = size.height
+            val width = size.width
+            val height = size.height
 
-        // Устанавливаем размеры для отступов слева и снизу
-        val paddingBottom = 30.dp.toPx()
+            // Устанавливаем размеры для отступов слева и снизу
+            val paddingBottom = 30.dp.toPx()
 
-        val path = Path()
+            val path = Path()
 
-        data.forEachIndexed { index, signalData ->
-            val x = (signalData.frequency - minFrequency) / frequencyRange * width
-            val y =
-                height - paddingBottom - (signalData.signalStrength - minAmplitude) / amplitudeRange * (height - paddingBottom)
+            data.forEachIndexed { index, signalData ->
+                val x = (signalData.frequency - minFrequency) / frequencyRange * width
+                val y =
+                    height - paddingBottom - (signalData.signalStrength - minAmplitude) / amplitudeRange * (height - paddingBottom)
 
-            if (index == 0) {
-                path.moveTo(x, y)
-            } else {
-                path.lineTo(x, y)
+                if (index == 0) {
+                    path.moveTo(x, y)
+                } else {
+                    path.lineTo(x, y)
+                }
+            }
+
+            val s: DrawingSettings = DrawingSettings(
+                smallTickLength = 5.dp.toPx(),
+                mediumTickLength = 7.5.dp.toPx(),
+                largeTickLength = 10.dp.toPx(),
+                height = height,
+                width = width,
+                tickPaint = Paint().apply {
+                    color = Color.Gray
+                    style = PaintingStyle.Stroke
+                    strokeWidth = 1.dp.toPx()
+                    isAntiAlias = true
+                },
+                textPaint = android.graphics.Paint().apply {
+                    color = android.graphics.Color.WHITE
+                    textSize = 14.sp.toPx()
+                    isAntiAlias = true
+                },
+                gridPaint = Paint().apply {
+                    color = Color.Gray.copy(alpha = 0.2f)
+                    style = PaintingStyle.Stroke
+                    strokeWidth = 1.dp.toPx()
+                    isAntiAlias = true
+                },
+                minFrequency = minFrequency,
+                maxFrequency = maxFrequency,
+                minMagnitude = minAmplitude,
+                maxMagnitude = maxAmplitude
+            )
+
+            drawIntoCanvas { canvas ->
+                canvas.drawPath(path, signalPaint)
+            }
+
+            drawIntoCanvas { canvas ->
+                drawFrequencyTicks(
+                    s = s,
+                    nativeCanvas = canvas.nativeCanvas
+                )
+            }
+
+            drawIntoCanvas { canvas ->
+                drawMagnitudeTicks(
+                    s = s,
+                    nativeCanvas = canvas.nativeCanvas
+                )
             }
         }
+        FreqOverlay(app = app, device)
+    }
+}
 
-        val s: DrawingSettings = DrawingSettings(
-            smallTickLength = 5.dp.toPx(),
-            mediumTickLength = 7.5.dp.toPx(),
-            largeTickLength = 10.dp.toPx(),
-            height = height,
-            width = width,
-            tickPaint = Paint().apply {
-                color = Color.Gray
-                style = PaintingStyle.Stroke
-                strokeWidth = 1.dp.toPx()
-                isAntiAlias = true
-            },
-            textPaint = android.graphics.Paint().apply {
-                color = android.graphics.Color.WHITE
-                textSize = 14.sp.toPx()
-                isAntiAlias = true
-            },
-            gridPaint = Paint().apply {
-                color = Color.Gray.copy(alpha = 0.2f)
-                style = PaintingStyle.Stroke
-                strokeWidth = 1.dp.toPx()
-                isAntiAlias = true
-            },
-            minFrequency = minFrequency,
-            maxFrequency = maxFrequency,
-            minMagnitude = minAmplitude,
-            maxMagnitude = maxAmplitude
+@Composable
+fun BoxScope.FreqOverlay(app: AnalyzerApp, device: IDevice) {
+    AnimatedVisibility(
+        modifier = Modifier.align(Alignment.TopEnd),
+        visible = app.isFreqOverlayShown,
+        enter = slideInHorizontally(initialOffsetX = { w -> w }) + expandHorizontally(expandFrom = Alignment.End),
+        exit = slideOutHorizontally(targetOffsetX = { w -> w }) + shrinkHorizontally(
+            shrinkTowards = Alignment.End
         )
-
-        drawIntoCanvas { canvas ->
-            canvas.drawPath(path, signalPaint)
-        }
-
-        drawIntoCanvas { canvas ->
-            drawFrequencyTicks(
-                s = s,
-                nativeCanvas = canvas.nativeCanvas
-            )
-        }
-
-
-        drawIntoCanvas { canvas ->
-            drawMagnitudeTicks(
-                s = s,
-                nativeCanvas = canvas.nativeCanvas
-            )
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(10.dp)
+                .clip(shape = RoundedCornerShape(10.dp))
+                .background(Color(0xAA222222))
+        ) {
+            listOf(
+                "Центр" to device.centerFrequency,
+                "Старт" to device.startFrequency,
+                "Стоп" to device.endFrequency,
+                "Полоса" to device.frequencyRange
+            ).map {
+                Row(
+                    modifier = Modifier
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                        .width(160.dp)
+                ) {
+                    Text(it.first, color = Color.Cyan)
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text(
+                        text = it.second.toText(),
+                        color = Color.LightGray
+                    )
+                }
+            }
         }
     }
 }
@@ -193,7 +246,7 @@ fun DrawScope.drawMagnitudeTicks(
             val text = String.format("%d", mag)
             val textHeight = s.textPaint.fontMetrics.bottom - s.textPaint.fontMetrics.top
 
-            if ((y + textHeight) < s.height) {
+            if ((y + textHeight) < s.height && (y-textHeight) > 0) {
                 nativeCanvas.drawText(
                     text,
                     12.dp.toPx(),
