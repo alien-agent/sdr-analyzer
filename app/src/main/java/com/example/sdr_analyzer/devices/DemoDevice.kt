@@ -5,6 +5,7 @@ import com.example.sdr_analyzer.data.model.MHz
 import com.example.sdr_analyzer.data.model.SignalData
 import com.example.sdr_analyzer.data.model.toMHz
 import kotlin.math.absoluteValue
+import kotlin.math.exp
 import kotlin.random.Random
 
 class DemoDevice : IDevice {
@@ -47,8 +48,7 @@ fun generateSampleData(
         var signalStrength = -100 + Random.nextFloat() * 5
         val diff = (frequency-closestCenterFrequency(frequency)).absoluteValue
         if (diff < endFrequency - startFrequency / 10) {
-            signalStrength += Random.nextFloat() * 100 * Math.exp(-diff.toMHz().toDouble() / 4)
-                .toFloat() / 2
+            signalStrength += Random.nextFloat().coerceIn(0.3f, 1f) * 50 * exp(-diff.toMHz().toDouble() / 6).toFloat()
         }
 
         data.add(SignalData(frequency = frequency, amplitude = signalStrength))
