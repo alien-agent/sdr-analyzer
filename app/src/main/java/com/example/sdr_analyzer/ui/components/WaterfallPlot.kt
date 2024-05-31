@@ -10,7 +10,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.PaintingStyle
 import com.example.sdr_analyzer.data.model.SignalData
-import kotlin.random.Random
 
 @Composable
 fun WaterfallPlot(data: List<List<SignalData>>, modifier: Modifier = Modifier) {
@@ -38,7 +37,7 @@ fun WaterfallPlot(data: List<List<SignalData>>, modifier: Modifier = Modifier) {
                 val x = (signalData.frequency - minFrequency) / frequencyRange * width
                 val y = rowIndex * rowHeight
                 val colorIntensity =
-                    ((signalData.signalStrength + 100) / 100 * 255).toInt().coerceIn(0, 255)
+                    ((signalData.amplitude + 100) / 100 * 255).toInt().coerceIn(0, 255)
                 paint.color = Color(colorIntensity, 0, 255 - colorIntensity)
                 drawRect(
                     color = paint.color,

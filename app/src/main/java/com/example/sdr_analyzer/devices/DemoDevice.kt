@@ -51,7 +51,7 @@ fun generateSampleData(
                 .toFloat() / 2
         }
 
-        data.add(SignalData(frequency = frequency, signalStrength = signalStrength))
+        data.add(SignalData(frequency = frequency, amplitude = signalStrength))
         frequency += step
     }
     return data

@@ -136,3 +136,7 @@ fun WaitingForDevice() {
         }
     }
 }
+
+fun roundToNearest(value: Float, roundTo: Float): Float {
+    return ((value + roundTo/2) / roundTo).toInt() * roundTo
+}

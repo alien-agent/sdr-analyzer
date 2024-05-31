@@ -58,13 +58,13 @@ class DrawingSettings(
 
     val minFrequency: Frequency,
     val maxFrequency: Frequency,
-    val minMagnitude: Float,
-    val maxMagnitude: Float,
+    val minAmplitude: Float,
+    val maxAmplitude: Float,
 ) {
     val frequencyRange: Float
         get() = maxFrequency - minFrequency
-    val magnitudeRange: Float
-        get() = maxMagnitude - minMagnitude
+    val amplitudeRange: Float
+        get() = maxAmplitude - minAmplitude
 }
 
 @Composable
@@ -116,7 +116,7 @@ fun SignalStrengthGraph(
             data.forEachIndexed { index, signalData ->
                 val x = (signalData.frequency - minFrequency) / frequencyRange * width
                 val y =
-                    height - paddingBottom - (signalData.signalStrength - minAmplitude) / amplitudeRange * (height - paddingBottom)
+                    height - paddingBottom - (signalData.amplitude - minAmplitude) / amplitudeRange * (height - paddingBottom)
 
                 if (index == 0) {
                     path.moveTo(x, y)
@@ -150,8 +150,8 @@ fun SignalStrengthGraph(
                 },
                 minFrequency = minFrequency,
                 maxFrequency = maxFrequency,
-                minMagnitude = minAmplitude,
-                maxMagnitude = maxAmplitude
+                minAmplitude = minAmplitude,
+                maxAmplitude = maxAmplitude
             )
 
             drawIntoCanvas { canvas ->
@@ -166,7 +166,7 @@ fun SignalStrengthGraph(
             }
 
             drawIntoCanvas { canvas ->
-                drawMagnitudeTicks(
+                drawAmplitudeTicks(
                     s = s,
                     nativeCanvas = canvas.nativeCanvas
                 )
@@ -215,12 +215,12 @@ fun BoxScope.FreqOverlay(app: AnalyzerApp, device: IDevice) {
     }
 }
 
-fun DrawScope.drawMagnitudeTicks(
+fun DrawScope.drawAmplitudeTicks(
     s: DrawingSettings,
     nativeCanvas: NativeCanvas
 ) {
-    for (mag in s.minMagnitude.toInt()..s.maxMagnitude.toInt()) {
-        val y = s.height - (mag - s.minMagnitude) / s.magnitudeRange * s.height
+    for (mag in s.minAmplitude.toInt()..s.maxAmplitude.toInt()) {
+        val y = s.height - (mag - s.minAmplitude) / s.amplitudeRange * s.height
         drawLine(
             color = s.tickPaint.color,
             start = Offset(
