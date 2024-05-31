@@ -33,17 +33,6 @@ fun FrequencySettings(device: IDevice, exit: () -> Unit) {
             .fillMaxWidth()
             .padding(16.dp)
     ) {
-        Row() {
-            IconButton(onClick = {exit()}) {
-                Icon(
-                    imageVector = Icons.Filled.ArrowBack,
-                    contentDescription = null,
-                )
-            }
-            Spacer(modifier = Modifier.width(10.dp))
-            Text("Настройки частоты", style = MaterialTheme.typography.titleLarge, modifier = Modifier.align(CenterVertically))
-        }
-
         FrequencyField(label = "Центр", value = device.centerFrequency, onValueChange = {freq -> device.centerFrequency = freq}, focusManager = focusManager)
         Spacer(modifier = Modifier.height(8.dp))
         FrequencyField(label = "Старт", value = device.startFrequency, onValueChange = {freq -> device.startFrequency = freq}, focusManager = focusManager)

@@ -18,30 +18,18 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.sdr_analyzer.manager.ConnectionState
+import com.example.sdr_analyzer.data.model.ConnectionStatus
 
 @Composable
-fun ConnectionStatus(state: ConnectionState, deviceName: String?, modifier: Modifier = Modifier) {
-    val transition = rememberInfiniteTransition()
-
-    val alpha by transition.animateFloat(
-        initialValue = 1f,
-        targetValue = 0.3f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        )
-    )
-
+fun ConnectionStatus(status: ConnectionStatus, deviceName: String?, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .padding(8.dp)
             .background(
-                color = when (state) {
-                    ConnectionState.Connected -> Color(0xFF4CAF50)
-                    ConnectionState.Connecting -> Color(0xFFFFC107)
-                    ConnectionState.Waiting -> Color(0xFF2196F3)
-                    ConnectionState.Failed -> Color(0xFFF44336)
+                color = when (status) {
+                    ConnectionStatus.Connected -> Color(0xFF4CAF50)
+                    ConnectionStatus.Waiting -> Color(0xFF2196F3)
+                    ConnectionStatus.Failed -> Color(0xFFF44336)
                 },
                 shape = MaterialTheme.shapes.small
             )
@@ -50,23 +38,20 @@ fun ConnectionStatus(state: ConnectionState, deviceName: String?, modifier: Modi
         horizontalArrangement = Arrangement.Center
     ) {
         Icon(
-            imageVector = when (state) {
-                ConnectionState.Connected -> Icons.Filled.CheckCircle
-                ConnectionState.Failed -> Icons.Filled.Error
-                ConnectionState.Connecting -> Icons.Filled.Sync
-                ConnectionState.Waiting -> Icons.Filled.Sync
+            imageVector = when (status) {
+                ConnectionStatus.Connected -> Icons.Filled.CheckCircle
+                ConnectionStatus.Failed -> Icons.Filled.Error
+                ConnectionStatus.Waiting -> Icons.Filled.Sync
             },
             contentDescription = "Статус",
             tint = Color.White,
-            modifier = if (state == ConnectionState.Connecting) Modifier.alpha(alpha) else Modifier
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
-            text = when (state) {
-                ConnectionState.Connected -> deviceName ?: "Подключено"
-                ConnectionState.Connecting -> "Подключение"
-                ConnectionState.Waiting -> "Ожидание"
-                ConnectionState.Failed -> "Ошибка"
+            text = when (status) {
+                ConnectionStatus.Connected -> deviceName ?: "Подключено"
+                ConnectionStatus.Waiting -> "Ожидание"
+                ConnectionStatus.Failed -> "Ошибка"
             },
             color = Color.White,
             fontSize = 16.sp

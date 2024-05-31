@@ -1,4 +1,4 @@
-package com.example.sdr_analyzer.manager
+package com.example.sdr_analyzer.application
 
 import android.annotation.SuppressLint
 import android.app.PendingIntent
@@ -10,9 +10,7 @@ import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbDeviceConnection
 import android.hardware.usb.UsbManager
 import android.util.Log
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import com.example.sdr_analyzer.data.model.ConnectionStatus
 import com.example.sdr_analyzer.devices.ArinstSSA
 import com.example.sdr_analyzer.devices.IDevice
 import kotlinx.coroutines.*
@@ -20,18 +18,9 @@ import kotlinx.coroutines.*
 const val LOGGER_TAG = "DeviceManager"
 const val ACTION_USB_PERMISSION = "com.example.sdr_analyzer.USB_PERMISSION"
 
-enum class ConnectionState {
-    Waiting,
-    Connecting,
-    Failed,
-    Connected,
-}
-
 @SuppressLint("UnspecifiedRegisterReceiverFlag")
-class DeviceManager(private val context: Context) {
+class DeviceManager(private val context: Context, private val onStatusUpdated: (ConnectionStatus) -> Unit) {
     private var usbManager: UsbManager = context.getSystemService(Context.USB_SERVICE) as UsbManager
-    var connectionStatus by mutableStateOf(ConnectionState.Waiting)
-        private set
     var connectedDevice: IDevice? = null
         private set
     val isConnected: Boolean
@@ -50,24 +39,27 @@ class DeviceManager(private val context: Context) {
                         }
                     } else {
                         Log.d(LOGGER_TAG, "Permission denied for device ${device?.deviceName}")
-                        connectionStatus = ConnectionState.Failed
+                        onStatusUpdated(ConnectionStatus.Failed)
                     }
                 }
             }
         }
     }
-    private val detachedReceiver = object : BroadcastReceiver(){
+    private val detachedReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent) {
             if (UsbManager.ACTION_USB_DEVICE_DETACHED == intent.action) {
                 Log.d(LOGGER_TAG, "Device detached")
                 connectedDevice = null
-                connectionStatus = ConnectionState.Waiting
+                onStatusUpdated(ConnectionStatus.Waiting)
             }
         }
     }
 
     init {
-        context.registerReceiver(detachedReceiver, IntentFilter(UsbManager.ACTION_USB_DEVICE_DETACHED))
+        context.registerReceiver(
+            detachedReceiver,
+            IntentFilter(UsbManager.ACTION_USB_DEVICE_DETACHED)
+        )
         context.registerReceiver(permissionReceiver, IntentFilter(ACTION_USB_PERMISSION))
         scope.launch {
             while (true) {
@@ -89,16 +81,14 @@ class DeviceManager(private val context: Context) {
                     context, 0, Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE
                 )
             )
-            connectionStatus = ConnectionState.Connecting
             return
         }
 
         val connection: UsbDeviceConnection
-        connectionStatus = ConnectionState.Connecting
         try {
             connection = usbManager.openDevice(device)
         } catch (_: Exception) {
-            connectionStatus = ConnectionState.Failed
+            onStatusUpdated(ConnectionStatus.Failed)
             return
         }
 
@@ -106,10 +96,11 @@ class DeviceManager(private val context: Context) {
             connectedDevice = ArinstSSA(device, connection)
         } else {
             Log.d(LOGGER_TAG, "Unsupported device (${device.vendorId},${device.deviceId})")
-            connectionStatus = ConnectionState.Failed
+            onStatusUpdated(ConnectionStatus.Failed)
+
             return
         }
 
-        connectionStatus = ConnectionState.Connected
+        onStatusUpdated(ConnectionStatus.Connected)
     }
 }
