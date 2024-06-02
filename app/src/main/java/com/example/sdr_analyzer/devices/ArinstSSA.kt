@@ -19,7 +19,7 @@ class ArinstSSA(private val device: UsbDevice, private val connection: UsbDevice
     override val minFrequency: Frequency = 35 * MHz
     override val maxFrequencyRange: Frequency = 6200 * MHz
 
-    override var frequencyStep: Frequency = 100000.0f
+    override var frequencyStep: Frequency = 250000.0f
     override var centerFrequency: Frequency = 105 * MHz
         set(value) {
             field =
@@ -101,7 +101,6 @@ class ArinstSSA(private val device: UsbDevice, private val connection: UsbDevice
     ): List<SignalData> {
         val amplitudes = mutableListOf<SignalData>()
         for (i in response.indices step 2) {
-            // val amplitudeIndex: Int = response[i] & 7 shl 8 or (response[i+1] & 255)
             val amplitudeIndex =
                 ((response[i].toInt() and 0x7) shl 8) or (response.getOrElse(i + 1) { 0 }
                     .toInt() and 0xFF)
@@ -176,7 +175,6 @@ fun ByteArray.findAllConsecutive(v1: Byte, v2: Byte): List<Int> {
             result.add(i)
         }
     }
-
 
     return result
 }

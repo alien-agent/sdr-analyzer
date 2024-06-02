@@ -11,6 +11,9 @@ import com.example.sdr_analyzer.devices.DemoDevice
 
 @Stable
 class AnalyzerApp(context: Context) {
+    private var _connectionStatus by mutableStateOf(ConnectionStatus.Waiting)
+    val connectionStatus by derivedStateOf { if (isDemoMode) ConnectionStatus.Connected else _connectionStatus }
+
     private var _deviceManager = DeviceManager(context=context, onStatusUpdated = {_connectionStatus = it})
     private var _demoDevice by mutableStateOf(DemoDevice())
 
@@ -18,9 +21,6 @@ class AnalyzerApp(context: Context) {
     var screenMinAmplitude by mutableStateOf(-110f)
     var isDemoMode by mutableStateOf(false)
     var isFreqOverlayShown by mutableStateOf(true)
-
-    private var _connectionStatus by mutableStateOf( ConnectionStatus.Waiting)
-    val connectionStatus by derivedStateOf { if (isDemoMode) ConnectionStatus.Connected else _connectionStatus }
 
     val connectedDevice by derivedStateOf { if (isDemoMode) _demoDevice else _deviceManager.connectedDevice }
 }
