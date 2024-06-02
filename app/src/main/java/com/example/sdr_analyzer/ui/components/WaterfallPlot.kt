@@ -37,7 +37,7 @@ fun WaterfallPlot(data: List<List<SignalData>>, modifier: Modifier = Modifier) {
                 val x = (signalData.frequency - minFrequency) / frequencyRange * width
                 val y = rowIndex * rowHeight
                 val colorIntensity =
-                    ((signalData.amplitude + 100) / 100 * 255).toInt().coerceIn(0, 255)
+                    ((signalData.amplitude + 120) / 100 * 255).toInt().coerceIn(0, 255)
                 paint.color = Color(colorIntensity, 0, 255 - colorIntensity)
                 drawRect(
                     color = paint.color,

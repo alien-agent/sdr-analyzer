@@ -26,7 +26,7 @@ class ArinstSSA(private val device: UsbDevice, private val connection: UsbDevice
                 value.coerceIn(minFrequency + frequencyRange / 2, maxFrequency - frequencyRange / 2)
         }
 
-    override var frequencyRange: Frequency = 100 * MHz
+    override var frequencyRange: Frequency = 50 * MHz
         set(value) {
             field = value.coerceIn(1 * MHz, maxFrequencyRange)
             centerFrequency = centerFrequency.coerceIn(

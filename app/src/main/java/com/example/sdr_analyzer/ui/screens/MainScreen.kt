@@ -48,10 +48,8 @@ fun MainScreen(app: AnalyzerApp) {
                         add(sampleData)
                     }
                 }
-            } else {
-                waterfallData.toMutableList().add(sampleData)
             }
-            delay(50)  // 50 мс = 20 раз в секунду
+            delay(50)
         }
     }
 
@@ -135,8 +133,4 @@ fun WaitingForDevice() {
             )
         }
     }
-}
-
-fun roundToNearest(value: Float, roundTo: Float): Float {
-    return ((value + roundTo/2) / roundTo).toInt() * roundTo
 }

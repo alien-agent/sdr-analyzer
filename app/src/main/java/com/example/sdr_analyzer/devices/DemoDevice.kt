@@ -4,6 +4,7 @@ import com.example.sdr_analyzer.data.model.Frequency
 import com.example.sdr_analyzer.data.model.MHz
 import com.example.sdr_analyzer.data.model.SignalData
 import com.example.sdr_analyzer.data.model.toMHz
+import kotlinx.coroutines.delay
 import kotlin.math.absoluteValue
 import kotlin.math.exp
 import kotlin.random.Random
@@ -32,6 +33,7 @@ class DemoDevice : IDevice {
         }
 
     override suspend fun getAmplitudes(): List<SignalData> {
+        delay(30)
         return generateSampleData(startFrequency, endFrequency)
     }
 }
