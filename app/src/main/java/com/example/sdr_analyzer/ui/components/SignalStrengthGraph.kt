@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -201,10 +202,10 @@ fun BoxScope.FreqOverlay(app: AnalyzerApp, device: IDevice) {
                 Row(
                     modifier = Modifier
                         .padding(horizontal = 10.dp, vertical = 6.dp)
-                        .width(160.dp)
+                        .width(170.dp)
                 ) {
                     Text(it.first, color = Color.Cyan)
-                    Spacer(modifier = Modifier.weight(1f))
+                    Spacer(modifier = Modifier.weight(1f).widthIn(4.dp, 100.dp))
                     Text(
                         text = it.second.toText(),
                         color = Color.LightGray
