@@ -10,6 +10,9 @@ import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbDeviceConnection
 import android.hardware.usb.UsbManager
 import android.util.Log
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.example.sdr_analyzer.data.model.ConnectionStatus
 import com.example.sdr_analyzer.devices.ArinstSSA
 import com.example.sdr_analyzer.devices.IDevice
@@ -21,7 +24,7 @@ const val ACTION_USB_PERMISSION = "com.example.sdr_analyzer.USB_PERMISSION"
 @SuppressLint("UnspecifiedRegisterReceiverFlag")
 class DeviceManager(private val context: Context, private val onStatusUpdated: (ConnectionStatus) -> Unit) {
     private var usbManager: UsbManager = context.getSystemService(Context.USB_SERVICE) as UsbManager
-    var connectedDevice: IDevice? = null
+    var connectedDevice: IDevice? by mutableStateOf(null)
         private set
     val isConnected: Boolean
         get() = connectedDevice != null
