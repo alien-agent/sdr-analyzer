@@ -40,7 +40,7 @@ fun MainScreen(app: AnalyzerApp) {
                     continue
                 }
                 sampleData = freshData
-                if (waterfallData.size < 200) {
+                if (waterfallData.size < 100) {
                     waterfallData.add(sampleData)
                 } else {
                     waterfallData = waterfallData.apply {
