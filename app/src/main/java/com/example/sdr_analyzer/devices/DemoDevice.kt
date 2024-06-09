@@ -4,12 +4,15 @@ import com.example.sdr_analyzer.data.model.Frequency
 import com.example.sdr_analyzer.data.model.MHz
 import com.example.sdr_analyzer.data.model.SignalData
 import com.example.sdr_analyzer.data.model.toMHz
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 import kotlin.math.exp
 import kotlin.random.Random
 
-class DemoDevice : IDevice {
+class DemoDevice(val onDataReceived: (data: List<SignalData>) -> Unit) : IDevice {
     override val deviceName: String = "Demo Device"
 
     override val maxFrequency: Frequency = 6200 * MHz
@@ -32,9 +35,22 @@ class DemoDevice : IDevice {
             )
         }
 
+    init {
+        CoroutineScope(Dispatchers.IO).launch {
+            while (true) {
+                delay(50)
+                val data = getAmplitudes()
+                onDataReceived(data)
+            }
+        }
+    }
+
     override suspend fun getAmplitudes(): List<SignalData> {
-        delay(30)
         return generateSampleData(startFrequency, endFrequency)
+    }
+
+    override fun startReading(onDataReceived: (List<SignalData>) -> Unit) {
+        TODO("Not yet implemented")
     }
 }
 
@@ -48,9 +64,11 @@ fun generateSampleData(
     var frequency = startFrequency
     while (frequency <= endFrequency) {
         var signalStrength = -100 + Random.nextFloat() * 5
-        val diff = (frequency-closestCenterFrequency(frequency)).absoluteValue
+        val diff = (frequency - closestCenterFrequency(frequency)).absoluteValue
         if (diff < endFrequency - startFrequency / 10) {
-            signalStrength += Random.nextFloat().coerceIn(0.3f, 1f) * 50 * exp(-diff.toMHz().toDouble() / 6).toFloat()
+            signalStrength += Random.nextFloat().coerceIn(0.3f, 1f) * 50 * exp(
+                -diff.toMHz().toDouble() / 6
+            ).toFloat()
         }
 
         data.add(SignalData(frequency = frequency, amplitude = signalStrength))
@@ -59,18 +77,18 @@ fun generateSampleData(
     return data
 }
 
-fun closestCenterFrequency(value: Frequency): Frequency{
+fun closestCenterFrequency(value: Frequency): Frequency {
     val centerFrequencies = listOf(
-        100* MHz,
-        150* MHz,
-        200* MHz,
-        250* MHz,
-        450* MHz,
-        600* MHz,
-        750* MHz,
-        1000* MHz,
-        1200* MHz,
+        100 * MHz,
+        150 * MHz,
+        200 * MHz,
+        250 * MHz,
+        450 * MHz,
+        600 * MHz,
+        750 * MHz,
+        1000 * MHz,
+        1200 * MHz,
     )
 
-    return centerFrequencies.withIndex().minBy { (value-it.value).absoluteValue }.value
+    return centerFrequencies.withIndex().minBy { (value - it.value).absoluteValue }.value
 }

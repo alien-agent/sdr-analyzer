@@ -14,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.example.sdr_analyzer.data.model.ConnectionStatus
+import com.example.sdr_analyzer.data.model.SignalData
 import com.example.sdr_analyzer.devices.ArinstSSA
 import com.example.sdr_analyzer.devices.IDevice
 import kotlinx.coroutines.*
@@ -22,7 +23,11 @@ const val LOGGER_TAG = "DeviceManager"
 const val ACTION_USB_PERMISSION = "com.example.sdr_analyzer.USB_PERMISSION"
 
 @SuppressLint("UnspecifiedRegisterReceiverFlag")
-class DeviceManager(private val context: Context, private val onStatusUpdated: (ConnectionStatus) -> Unit) {
+class DeviceManager(
+    private val context: Context,
+    private val onStatusUpdated: (ConnectionStatus) -> Unit,
+    private val onDataReceived: (List<SignalData>) -> Unit
+) {
     private var usbManager: UsbManager = context.getSystemService(Context.USB_SERVICE) as UsbManager
     var connectedDevice: IDevice? by mutableStateOf(null)
         private set
@@ -96,7 +101,7 @@ class DeviceManager(private val context: Context, private val onStatusUpdated: (
         }
 
         if (device.vendorId == 1155) {
-            connectedDevice = ArinstSSA(device, connection)
+            connectedDevice = ArinstSSA(device, connection, onDataReceived)
         } else {
             Log.d(LOGGER_TAG, "Unsupported device (${device.vendorId},${device.deviceId})")
             onStatusUpdated(ConnectionStatus.Failed)

@@ -4,15 +4,24 @@ import android.hardware.usb.UsbConstants
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbDeviceConnection
 import android.hardware.usb.UsbEndpoint
+import android.util.Log
 import androidx.core.util.rangeTo
 import com.example.sdr_analyzer.data.model.Frequency
 import com.example.sdr_analyzer.data.model.MHz
 import com.example.sdr_analyzer.data.model.SignalData
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.random.Random
+import kotlin.time.ExperimentalTime
+import kotlin.time.measureTime
 
-class ArinstSSA(private val device: UsbDevice, private val connection: UsbDeviceConnection) :
+class ArinstSSA(
+    private val device: UsbDevice,
+    private val connection: UsbDeviceConnection,
+    private val onDataReceived: (List<SignalData>) -> Unit
+) :
     IDevice {
     override val deviceName: String = "Arinst SSA"
     override val maxFrequency: Frequency = 6200 * MHz
@@ -68,8 +77,10 @@ class ArinstSSA(private val device: UsbDevice, private val connection: UsbDevice
 
         this.inEndpoint = inEndpoint
         this.outEndpoint = outEndpoint
+        startReading(onDataReceived)
     }
 
+    @OptIn(ExperimentalTime::class)
     private suspend fun sendCommand(command: String, vararg args: Any): ByteArray =
         withContext(Dispatchers.IO) {
             val msg = buildString {
@@ -83,10 +94,10 @@ class ArinstSSA(private val device: UsbDevice, private val connection: UsbDevice
         }
 
     private fun readResponse(command: String): ByteArray {
-        val buffer = ByteArray(1024)
+        val buffer = ByteArray(65536)
         var result = ByteArray(0)
         while (true) {
-            val bytesRead = connection.bulkTransfer(inEndpoint, buffer, buffer.size, 1000)
+            val bytesRead = connection.bulkTransfer(inEndpoint, buffer, buffer.size, 50)
             if (bytesRead <= 0) break
             result += buffer.copyOf(bytesRead)
             if (result.takeLast(2) == listOf(13, 10)) break
@@ -118,6 +129,17 @@ class ArinstSSA(private val device: UsbDevice, private val connection: UsbDevice
             )
         }
         return amplitudes
+    }
+
+    override fun startReading(onDataReceived: (List<SignalData>) -> Unit) {
+        CoroutineScope(Dispatchers.IO).launch {
+            while (true) {
+                val data = getAmplitudes()
+                if (!data.isNullOrEmpty()) {
+                    onDataReceived(data)
+                }
+            }
+        }
     }
 
     override suspend fun getAmplitudes(): List<SignalData>? = withContext(Dispatchers.IO) {

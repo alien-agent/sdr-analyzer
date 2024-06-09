@@ -23,36 +23,6 @@ import kotlinx.coroutines.delay
 fun MainScreen(app: AnalyzerApp) {
     var showSettings by remember { mutableStateOf(false) }
 
-    var sampleData by remember { mutableStateOf(emptyList<SignalData>()) }
-    var waterfallData by remember {
-        mutableStateOf(
-            MutableList<List<SignalData>>(
-                0,
-                init = { emptyList() })
-        )
-    }
-
-    LaunchedEffect(Unit) {
-        while (true) {
-            if (app.connectedDevice != null) {
-                val freshData = app.connectedDevice!!.getAmplitudes()
-                if (freshData.isNullOrEmpty()) {
-                    continue
-                }
-                sampleData = freshData
-                if (waterfallData.size < 100) {
-                    waterfallData.add(sampleData)
-                } else {
-                    waterfallData = waterfallData.apply {
-                        removeAt(0)
-                        add(sampleData)
-                    }
-                }
-            }
-            delay(50)
-        }
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -74,10 +44,10 @@ fun MainScreen(app: AnalyzerApp) {
             SignalStrengthGraph(
                 app = app,
                 device = app.connectedDevice!!,
-                data = sampleData,
+                data = app.signalData,
                 modifier = Modifier.weight(1f)
             )
-            WaterfallPlot(data = waterfallData, modifier = Modifier.weight(1f))
+            WaterfallPlot(data = app.dataHistory, modifier = Modifier.weight(1f))
         }
     }
 }
